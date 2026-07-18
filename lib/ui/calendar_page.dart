@@ -9,7 +9,8 @@ import 'paywall.dart';
 import 'rotation_sheet.dart';
 
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key});
+  final VoidCallback? onOpenPresets;
+  const CalendarPage({super.key, this.onOpenPresets});
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -311,28 +312,58 @@ class _CalendarPageState extends State<CalendarPage> {
           );
         });
 
+        final stack = Stack(
+          children: [
+            Column(children: weekRows),
+            if (firstLockedWeek != null)
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    Expanded(flex: firstLockedWeek, child: const SizedBox()),
+                    Expanded(
+                      flex: weeks - firstLockedWeek,
+                      child: _unlockBand(context),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+
+        // プリセット選択中は「なぞって塗る」を有効化（ドラッグ確定時にまとめて保存）。
+        final interactive = _brush == null
+            ? stack
+            : GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (d) =>
+                    _paintAt(d.localPosition, cellW, cellH, startCol, daysInMonth),
+                onPanUpdate: (d) =>
+                    _paintAt(d.localPosition, cellW, cellH, startCol, daysInMonth),
+                onPanEnd: (_) => appStore.commitPaint(),
+                child: stack,
+              );
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Stack(
-            children: [
-              Column(children: weekRows),
-              if (firstLockedWeek != null)
-                Positioned.fill(
-                  child: Column(
-                    children: [
-                      Expanded(flex: firstLockedWeek, child: const SizedBox()),
-                      Expanded(
-                        flex: weeks - firstLockedWeek,
-                        child: _unlockBand(context),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          child: interactive,
         );
       },
     );
+  }
+
+  void _paintAt(
+      Offset local, double cellW, double cellH, int startCol, int daysInMonth) {
+    if (_brush == null) return;
+    final col = (local.dx / cellW).floor();
+    final row = (local.dy / cellH).floor();
+    if (col < 0 || col > 6 || row < 0) return;
+    final i = row * 7 + col;
+    final dayNum = i - startCol + 1;
+    if (dayNum < 1 || dayNum > daysInMonth) return;
+    final key = dateKeyOf(DateTime(_year, _month, dayNum));
+    if (appStore.daysFromToday(key) < 0) return; // 過去は塗らない
+    if (appStore.isLocked(key)) return; // ロック日はドラッグでは無視
+    appStore.paintPresetLive(key, _brush!);
   }
 
   Widget _cell(BuildContext context, int i, int startCol, int daysInMonth) {
@@ -694,9 +725,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: GestureDetector(
-                    onTap: () => DefaultTabController.maybeOf(context) == null
-                        ? _openPresets(context)
-                        : null,
+                    onTap: () => widget.onOpenPresets?.call(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
@@ -728,11 +757,4 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  void _openPresets(BuildContext context) {
-    // プリセット追加はプリセットタブへ誘導（簡易）。
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('下の「プリセット」タブから追加・編集できます'),
-      duration: Duration(seconds: 2),
-    ));
-  }
 }

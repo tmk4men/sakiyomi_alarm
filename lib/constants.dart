@@ -10,6 +10,10 @@ const int kMaxPresetsFree = 3;
 /// スヌーズ用の枠を残すため 55 に抑える。
 const int kMaxScheduledAlarms = 55;
 
+/// 法的文書のURL（GitHub Pages）。
+const String kTermsUrl = 'https://tmk4men.github.io/sakiyomi_alarm/terms.html';
+const String kPrivacyUrl = 'https://tmk4men.github.io/sakiyomi_alarm/privacy.html';
+
 /// アプリ内課金のプロダクトID。
 class Products {
   static const String monthly = 'sakiyomi_pro_monthly';

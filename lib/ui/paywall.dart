@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants.dart';
 import '../services/services.dart';
@@ -134,21 +135,35 @@ class _PaywallState extends State<_Paywall> {
                         child: const Text('購入を復元',
                             style: TextStyle(fontSize: 11.5))),
                     TextButton(
-                        onPressed: () {},
+                        onPressed: () => _open(kTermsUrl),
                         child: const Text('利用規約',
                             style: TextStyle(fontSize: 11.5))),
                     TextButton(
-                        onPressed: () {},
+                        onPressed: () => _open(kPrivacyUrl),
                         child: const Text('プライバシー',
                             style: TextStyle(fontSize: 11.5))),
                   ],
                 ),
                 Text(
-                  '無料体験は7日間。期間終了までに解約すれば料金はかかりません。\n以降は選択したプランで自動更新。いつでも解約できます。',
+                  _plan == Products.yearly
+                      ? '年額 ${yearly?.price ?? '¥2,600'}（税込）／年。7日間の無料体験後に自動更新されます。'
+                          '期間終了の24時間前までに解約しない限り自動更新されます。解約はApp Storeの購読管理から。'
+                          '未経過分の払い戻しは行われません。'
+                      : '月額 ${monthly?.price ?? '¥320'}（税込）／月。7日間の無料体験後に自動更新されます。'
+                          '期間終了の24時間前までに解約しない限り自動更新されます。解約はApp Storeの購読管理から。',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 10.5,
+                      height: 1.5,
                       color: cs.onSurface.withValues(alpha: 0.5)),
+                ),
+                Text(
+                  'サービス終了時は有料機能が使えなくなる場合があります（利用規約 第5条）。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 10,
+                      height: 1.5,
+                      color: cs.onSurface.withValues(alpha: 0.4)),
                 ),
                 if (billingService.lastError != null)
                   Padding(
@@ -163,6 +178,13 @@ class _PaywallState extends State<_Paywall> {
         );
       },
     );
+  }
+
+  Future<void> _open(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _buy() async {

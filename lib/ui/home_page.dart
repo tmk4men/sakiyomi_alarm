@@ -29,10 +29,10 @@ class _HomePageState extends State<HomePage> {
             listenable: appStore,
             builder: (context, _) => IndexedStack(
               index: _index,
-              children: const [
-                CalendarPage(),
-                PresetsPage(),
-                SettingsPage(),
+              children: [
+                CalendarPage(onOpenPresets: () => setState(() => _index = 1)),
+                const PresetsPage(),
+                const SettingsPage(),
               ],
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'data/app_store.dart';
 import 'services/services.dart';
@@ -72,6 +73,13 @@ class _SakiyomiAppState extends State<SakiyomiApp> with WidgetsBindingObserver {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: appStore.themeMode,
+          locale: const Locale('ja'),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('ja'), Locale('en')],
           home: const HomePage(),
         );
       },

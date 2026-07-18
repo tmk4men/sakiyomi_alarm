@@ -113,10 +113,11 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<Preset> _defaultPresets() => const [
-        Preset(id: 'p_normal', name: '通常', hour: 7, minute: 0, colorIndex: 0),
-        Preset(id: 'p_early', name: '早番', hour: 5, minute: 30, colorIndex: 1),
-        Preset(id: 'p_off', name: '休み', hour: null, minute: null, colorIndex: 4),
+  // 変更可能(growable)なリストで返す。const リストだと add/removeWhere でクラッシュする。
+  List<Preset> _defaultPresets() => [
+        const Preset(id: 'p_normal', name: '通常', hour: 7, minute: 0, colorIndex: 0),
+        const Preset(id: 'p_early', name: '早番', hour: 5, minute: 30, colorIndex: 1),
+        const Preset(id: 'p_off', name: '休み', hour: null, minute: null, colorIndex: 4),
       ];
 
   // ---- resolve ----
@@ -203,6 +204,24 @@ class AppStore extends ChangeNotifier {
   Future<void> assignPreset(String dateKey, String presetId) async {
     if (isLocked(dateKey)) return; // 無料枠の制限をストア層でも強制
     dayPlans[dateKey] = DayPlan(date: dateKey, presetId: presetId);
+    await _commit();
+  }
+
+  /// ドラッグ塗り用: UIだけ即時更新し、永続化と通知再スケジュールは遅延する。
+  /// 変更があれば true。ドラッグ終了時に [commitPaint] を必ず呼ぶこと。
+  bool paintPresetLive(String dateKey, String presetId) {
+    if (isLocked(dateKey)) return false;
+    final plan = dayPlans[dateKey];
+    if (plan != null && plan.presetId == presetId && !plan.hasOverride) {
+      return false; // 既に同じ
+    }
+    dayPlans[dateKey] = DayPlan(date: dateKey, presetId: presetId);
+    notifyListeners();
+    return true;
+  }
+
+  /// ドラッグ塗り確定: まとめて永続化＋再スケジュール。
+  Future<void> commitPaint() async {
     await _commit();
   }
 

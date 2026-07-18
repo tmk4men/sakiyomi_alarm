@@ -53,9 +53,20 @@ flutter run              # 実機/シミュレータで起動
 ### iOS 固有の設定（Xcode 側）
 
 - **Bundle Identifier** を `app.sakiyomi.alarm` に設定（Runner ターゲット）。
-- **表示名** を「さきよみアラーム」に（Info.plist の `CFBundleDisplayName`）。
+- **表示名** は Info.plist の `CFBundleDisplayName`＝「さきよみアラーム」設定済み。
+- **プライバシーマニフェスト**: `ios/Runner/PrivacyInfo.xcprivacy` を作成済み。Xcode で Runner ターゲットに追加（ドラッグ＆ドロップ、Target Membership を Runner に）してください。**申請に必須**。
 - **Time Sensitive 通知**: Signing & Capabilities に *Time Sensitive Notifications* を追加すると、集中モード中も通知が届きやすくなります。
 - **App Store Connect** でサブスク（`sakiyomi_pro_monthly` / `sakiyomi_pro_yearly`）を作成。テストは Sandbox / StoreKit Configuration で。
+- アプリアイコン・スクリーンショットは別途用意。
+
+### 法的文書（利用規約・プライバシーポリシー）
+
+`docs/` に用意し、GitHub Pages で公開しています（アプリ内の課金画面からリンク）。
+
+- 利用規約: <https://tmk4men.github.io/sakiyomi_alarm/terms.html>
+- プライバシーポリシー: <https://tmk4men.github.io/sakiyomi_alarm/privacy.html>
+
+**サービス終了時に有料機能が使えなくなる可能性**を利用規約 第4・5条で明記し、新規購入停止・自動更新停止・返金はストア規定に従う旨を規定しています。公開前に `[運営者名]`・所在地・施行日などのプレースホルダを確定し、必要に応じて専門家の確認を推奨します。
 
 ### iOS のアラームに関する制約（重要）
 
