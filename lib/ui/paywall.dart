@@ -120,7 +120,7 @@ class _PaywallState extends State<_Paywall> {
                         : Text(
                             _plan == Products.lifetime
                                 ? '買い切りで購入 ・ ${lifetime?.price ?? '¥900'}'
-                                : '7日間無料で試す ・ 月額 ${monthly?.price ?? '¥400'}',
+                                : '月額 ${monthly?.price ?? '¥400'} で購読',
                             style: const TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
                   ),
@@ -148,7 +148,7 @@ class _PaywallState extends State<_Paywall> {
                   _plan == Products.lifetime
                       ? '一度の購入で永続的に使えます（サブスクではありません）。'
                           '${lifetime?.price ?? '¥900'}（税込）の買い切りです。'
-                      : '月額 ${monthly?.price ?? '¥400'}（税込）／月。7日間の無料体験後に自動更新されます。'
+                      : '月額 ${monthly?.price ?? '¥400'}（税込）／月の自動更新サブスクです。'
                           '期間終了の24時間前までに解約しない限り自動更新されます。解約はApp Storeの購読管理から。',
                   textAlign: TextAlign.center,
                   style: TextStyle(
