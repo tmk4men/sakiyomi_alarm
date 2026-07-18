@@ -36,14 +36,29 @@ class SakiyomiApp extends StatefulWidget {
   State<SakiyomiApp> createState() => _SakiyomiAppState();
 }
 
-class _SakiyomiAppState extends State<SakiyomiApp> {
+class _SakiyomiAppState extends State<SakiyomiApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 初回フレーム後に通知許可をリクエスト。
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await notificationService.requestPermissions();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 復帰時に端末タイムゾーンの変更（旅行等）へ追随して貼り直す。
+    if (state == AppLifecycleState.resumed) {
+      notificationService.refreshAndReschedule(appStore);
+    }
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -11,7 +12,15 @@ const String kChannelId = 'sakiyomi_alarms';
 const String kChannelName = 'アラーム';
 const String kCategoryId = 'sakiyomi_alarm';
 
-int _idFor(String s) => s.hashCode & 0x7fffffff;
+/// スヌーズ通知のIDはこの値以上を使い、通常アラーム(=日付由来ID)と分離する。
+/// 再スケジュール時に通常アラームだけをキャンセルし、スヌーズを消さないため。
+const int kSnoozeIdBase = 900000000;
+
+/// 通常アラームのID = 日付そのもの(yyyyMMdd)。1日1件で衝突しない。
+int _mainId(String dateKey) => int.parse(dateKey.replaceAll('-', ''));
+
+/// スヌーズ用の一意ID（予約枠を通常アラームと分離）。
+int _snoozeId(int millis) => kSnoozeIdBase + (millis % 90000000);
 
 NotificationDetails _details(bool vibrate) => NotificationDetails(
       iOS: const DarwinNotificationDetails(
@@ -50,15 +59,19 @@ Future<void> _scheduleSnooze(
   final vibrate = (data['vibrate'] as bool?) ?? true;
   final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: snooze));
 
-  await plugin.zonedSchedule(
-    id: _idFor('snooze_${when.millisecondsSinceEpoch}'),
-    title: label,
-    body: 'スヌーズ中 — $snooze分後',
-    scheduledDate: when,
-    notificationDetails: _details(vibrate),
-    androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    payload: payload,
-  );
+  try {
+    await plugin.zonedSchedule(
+      id: _snoozeId(when.millisecondsSinceEpoch),
+      title: label,
+      body: 'スヌーズ中 — $snooze分後',
+      scheduledDate: when,
+      notificationDetails: _details(vibrate),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payload,
+    );
+  } catch (e) {
+    debugPrint('snooze schedule failed: $e');
+  }
 }
 
 /// 背景 isolate でのアクション応答（ロック画面のスヌーズ等）。
@@ -74,6 +87,9 @@ void notificationBackgroundResponse(NotificationResponse response) async {
     );
     try {
       tzdata.initializeTimeZones();
+      final dynamic res = await FlutterTimezone.getLocalTimezone();
+      final name = res is String ? res : (res as dynamic).identifier as String;
+      tz.setLocalLocation(tz.getLocation(name));
     } catch (_) {}
     await _scheduleSnooze(plugin, response.payload);
   }
@@ -85,8 +101,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
-  Future<void> init() async {
-    tzdata.initializeTimeZones();
+  Future<void> _applyLocalTimezone() async {
     String tzName = 'Asia/Tokyo';
     try {
       final dynamic res = await FlutterTimezone.getLocalTimezone();
@@ -101,6 +116,11 @@ class NotificationService {
     } catch (_) {
       tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
     }
+  }
+
+  Future<void> init() async {
+    tzdata.initializeTimeZones();
+    await _applyLocalTimezone();
 
     final darwin = DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -125,7 +145,6 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse: notificationBackgroundResponse,
     );
 
-    // Android 用チャンネル
     await _plugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -156,21 +175,47 @@ class NotificationService {
     return false;
   }
 
-  void _onResponse(NotificationResponse response) {
+  Future<void> _onResponse(NotificationResponse response) async {
     if (response.actionId == 'snooze') {
-      _scheduleSnooze(_plugin, response.payload);
+      await _scheduleSnooze(_plugin, response.payload);
     }
   }
 
+  /// 端末タイムゾーンの変更（旅行等）に追随して貼り直す。アプリ復帰時に呼ぶ。
+  Future<void> refreshAndReschedule(AppStore store) async {
+    await _applyLocalTimezone();
+    await rescheduleAll(store);
+  }
+
   /// 予定に基づき、直近の未来アラームを（上限までまとめて）貼り直す。
+  ///
+  /// - 通常アラーム(ID<kSnoozeIdBase)だけを個別キャンセルし、スヌーズは消さない。
+  /// - ロック(非Pro×8日目以降)の日は予約しない。
+  /// - 1件ずつ try/catch し、途中失敗で全滅させない。
   Future<void> rescheduleAll(AppStore store) async {
     if (!_ready) return;
-    await _plugin.cancelAll();
+
+    // 既存の通常アラームのみキャンセル（スヌーズは温存）。
+    try {
+      final pending = await _plugin.pendingNotificationRequests();
+      for (final p in pending) {
+        if (p.id < kSnoozeIdBase) {
+          try {
+            await _plugin.cancel(id: p.id);
+          } catch (e) {
+            debugPrint('cancel ${p.id} failed: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('list pending failed: $e');
+    }
 
     final now = tz.TZDateTime.now(tz.local);
     final upcoming = <({tz.TZDateTime when, ResolvedForNotif alarm})>[];
 
     for (final key in store.dayPlans.keys) {
+      if (store.isLocked(key)) continue; // 非Proのロック日は鳴らさない
       final r = store.resolve(key);
       if (r == null) continue;
       final d = parseDateKey(key);
@@ -198,15 +243,20 @@ class NotificationService {
         'snooze': item.alarm.snooze,
         'vibrate': item.alarm.vibrate,
       });
-      await _plugin.zonedSchedule(
-        id: _idFor(item.alarm.key),
-        title: item.alarm.label,
-        body: '起きる時間です',
-        scheduledDate: item.when,
-        notificationDetails: _details(item.alarm.vibrate),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: payload,
-      );
+      try {
+        await _plugin.zonedSchedule(
+          id: _mainId(item.alarm.key),
+          title: item.alarm.label,
+          body: '起きる時間です',
+          scheduledDate: item.when,
+          notificationDetails: _details(item.alarm.vibrate),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: payload,
+        );
+      } catch (e) {
+        // 権限なし/上限超過/OSエラー等。1件失敗しても他は続行する。
+        debugPrint('schedule failed for ${item.alarm.key}: $e');
+      }
     }
   }
 }

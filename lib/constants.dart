@@ -7,7 +7,8 @@ const int kFreeDaysAhead = 7;
 const int kMaxPresetsFree = 3;
 
 /// iOS の保留中ローカル通知の上限(64)に対する安全なスケジュール上限。
-const int kMaxScheduledAlarms = 60;
+/// スヌーズ用の枠を残すため 55 に抑える。
+const int kMaxScheduledAlarms = 55;
 
 /// アプリ内課金のプロダクトID。
 class Products {

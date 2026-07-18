@@ -111,7 +111,10 @@ class BillingService extends ChangeNotifier {
   }
 
   bool _isValid(PurchaseDetails p) {
-    // TODO(本番): サーバー/レシート検証を追加するとより堅牢。
+    // 既知の制約: in_app_purchase 単体ではサブスクの有効期限・返金・解約後の
+    // 失効を検出できない。付与済みの isPro はローカルに残り続ける。
+    // 本番では StoreKit2(JWS) もしくはサーバーでのレシート/署名検証を追加し、
+    // 期限切れ・取消・猶予期間を EntitlementRepository に同期すること。
     return Products.all.contains(p.productID);
   }
 

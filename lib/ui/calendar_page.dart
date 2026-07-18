@@ -264,15 +264,34 @@ class _CalendarPageState extends State<CalendarPage> {
     final totalCells = (((startCol + daysInMonth) + 6) ~/ 7) * 7;
     final weeks = totalCells ~/ 7;
 
-    int? firstLockedWeek;
+    // 最初にロック日が現れる週を求める。ただしその週にまだ無料の日が
+    // 残っている場合はバンドで覆わず（無料日のタップを奪わない）、次の週から覆う。
+    int? firstLockedIdx;
     for (var i = 0; i < totalCells; i++) {
       final dayNum = i - startCol + 1;
       if (dayNum < 1 || dayNum > daysInMonth) continue;
       final key = dateKeyOf(DateTime(_year, _month, dayNum));
-      if (appStore.isLocked(key) && appStore.resolve(key) == null) {
-        firstLockedWeek = i ~/ 7;
+      if (appStore.isLocked(key)) {
+        firstLockedIdx = i;
         break;
       }
+    }
+    int? firstLockedWeek;
+    if (firstLockedIdx != null) {
+      final w = firstLockedIdx ~/ 7;
+      bool weekHasFree = false;
+      for (var c = 0; c < 7; c++) {
+        final i = w * 7 + c;
+        final dn = i - startCol + 1;
+        if (dn < 1 || dn > daysInMonth) continue;
+        final key = dateKeyOf(DateTime(_year, _month, dn));
+        if (!appStore.isLocked(key)) {
+          weekHasFree = true;
+          break;
+        }
+      }
+      final band = weekHasFree ? w + 1 : w;
+      if (band < weeks) firstLockedWeek = band;
     }
 
     return LayoutBuilder(

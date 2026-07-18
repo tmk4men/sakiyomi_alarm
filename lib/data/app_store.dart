@@ -55,36 +55,59 @@ class AppStore extends ChangeNotifier {
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
 
-    final presetsRaw = _prefs.getString(_kPresets);
-    if (presetsRaw != null) {
-      final list = jsonDecode(presetsRaw) as List<dynamic>;
-      presets = list
-          .map((e) => Preset.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } else {
+    // 各領域を個別に try/catch。破損キーがあってもアプリは起動する。
+    try {
+      final presetsRaw = _prefs.getString(_kPresets);
+      if (presetsRaw != null) {
+        final list = jsonDecode(presetsRaw) as List<dynamic>;
+        presets = list
+            .map((e) => Preset.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {
+      presets = [];
+    }
+    if (presets.isEmpty) {
       presets = _defaultPresets();
       await _savePresets();
     }
 
-    final plansRaw = _prefs.getString(_kDayPlans);
-    if (plansRaw != null) {
-      final map = jsonDecode(plansRaw) as Map<String, dynamic>;
-      dayPlans = map.map(
-          (k, v) => MapEntry(k, DayPlan.fromJson(v as Map<String, dynamic>)));
+    try {
+      final plansRaw = _prefs.getString(_kDayPlans);
+      if (plansRaw != null) {
+        final map = jsonDecode(plansRaw) as Map<String, dynamic>;
+        dayPlans = map.map(
+            (k, v) => MapEntry(k, DayPlan.fromJson(v as Map<String, dynamic>)));
+      }
+    } catch (_) {
+      dayPlans = {};
     }
 
-    final settingsRaw = _prefs.getString(_kSettings);
-    if (settingsRaw != null) {
-      final s = jsonDecode(settingsRaw) as Map<String, dynamic>;
-      themeMode = ThemeMode.values[(s['themeMode'] as int?) ?? 0];
-      defaultSnooze = (s['defaultSnooze'] as int?) ?? 5;
+    try {
+      final settingsRaw = _prefs.getString(_kSettings);
+      if (settingsRaw != null) {
+        final s = jsonDecode(settingsRaw) as Map<String, dynamic>;
+        final tm = (s['themeMode'] as int?) ?? 0;
+        themeMode = (tm >= 0 && tm < ThemeMode.values.length)
+            ? ThemeMode.values[tm]
+            : ThemeMode.system;
+        defaultSnooze = (s['defaultSnooze'] as int?) ?? 5;
+      }
+    } catch (_) {
+      themeMode = ThemeMode.system;
+      defaultSnooze = 5;
     }
 
-    final entRaw = _prefs.getString(_kEntitlement);
-    if (entRaw != null) {
-      final e = jsonDecode(entRaw) as Map<String, dynamic>;
-      isPro = (e['isPro'] as bool?) ?? false;
-      proProductId = e['productId'] as String?;
+    try {
+      final entRaw = _prefs.getString(_kEntitlement);
+      if (entRaw != null) {
+        final e = jsonDecode(entRaw) as Map<String, dynamic>;
+        isPro = (e['isPro'] as bool?) ?? false;
+        proProductId = e['productId'] as String?;
+      }
+    } catch (_) {
+      isPro = false;
+      proProductId = null;
     }
 
     notifyListeners();
@@ -144,6 +167,7 @@ class AppStore extends ChangeNotifier {
     final now = DateTime.now();
     ({DateTime when, ResolvedAlarm alarm})? best;
     for (final key in dayPlans.keys) {
+      if (isLocked(key)) continue; // 非Proのロック日は予約されないので次候補にもしない
       final r = resolve(key);
       if (r == null) continue;
       final d = parseDateKey(key);
@@ -177,11 +201,13 @@ class AppStore extends ChangeNotifier {
   // ---- mutations ----
 
   Future<void> assignPreset(String dateKey, String presetId) async {
+    if (isLocked(dateKey)) return; // 無料枠の制限をストア層でも強制
     dayPlans[dateKey] = DayPlan(date: dateKey, presetId: presetId);
     await _commit();
   }
 
   Future<void> setOverride(String dateKey, int hour, int minute) async {
+    if (isLocked(dateKey)) return;
     final existing = dayPlans[dateKey];
     dayPlans[dateKey] = DayPlan(
       date: dateKey,
