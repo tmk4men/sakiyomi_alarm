@@ -1,0 +1,65 @@
+import 'package:flutter/material.dart';
+
+import 'data/app_store.dart';
+import 'services/services.dart';
+import 'services/notification_service.dart';
+import 'services/billing_service.dart';
+import 'theme/app_theme.dart';
+import 'ui/home_page.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  appStore = AppStore();
+  await appStore.load();
+
+  notificationService = NotificationService();
+  await notificationService.init();
+
+  // 予定が変わるたびに通知を貼り直す。
+  appStore.onScheduleChanged = () => notificationService.rescheduleAll(appStore);
+
+  billingService = BillingService(appStore);
+  // 課金初期化は起動をブロックしない。
+  billingService.init();
+
+  // 初回スケジュール。
+  await notificationService.rescheduleAll(appStore);
+
+  runApp(const SakiyomiApp());
+}
+
+class SakiyomiApp extends StatefulWidget {
+  const SakiyomiApp({super.key});
+
+  @override
+  State<SakiyomiApp> createState() => _SakiyomiAppState();
+}
+
+class _SakiyomiAppState extends State<SakiyomiApp> {
+  @override
+  void initState() {
+    super.initState();
+    // 初回フレーム後に通知許可をリクエスト。
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await notificationService.requestPermissions();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: appStore,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'さきよみアラーム',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: appStore.themeMode,
+          home: const HomePage(),
+        );
+      },
+    );
+  }
+}

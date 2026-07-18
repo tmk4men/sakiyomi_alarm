@@ -1,0 +1,78 @@
+# さきよみアラーム (Sakiyomi Alarm)
+
+**先の予定まで、まとめて設定できるアラーム。** 毎晩「明日は何時にしようかな」と迷わないために、1ヶ月分の起床時刻をカレンダーで一気に決められます。シフト勤務・不定休の人はもちろん、旅行や帰省など単発で早起きしたいときにも。
+
+Flutter 製（iOS 本命 / Android も同一コードで対応可）。
+
+---
+
+## コンセプト
+
+- **カレンダーが主役** — 月を一覧し、各日をタップして起床時刻を設定。
+- **プリセットで塗る** — 「通常 7:00 / 早番 5:30 / 休み」などを登録し、カレンダーに塗るだけ。
+- **個別編集** — 日をタップして「この日だけの時刻」に上書き、または休みに。
+- **くり返し生成 (Pro)** — 「早番3・休1」等のパターンを期間まとめて流し込み。
+- **課金** — 無料は今日から **7日先まで**設定可・プリセット3個まで。Pro で 7日より先・プリセット無制限・くり返し生成を解放。
+
+## 画面
+
+- **カレンダー** — 次のアラーム表示、月グリッド（8日目以降は無料だとフロスト＋Pro解放バンド）、月サマリー、下部にプリセットドック。
+- **プリセット** — 一覧・追加・編集（名前 / 時刻 / 色 / 休みトグル）。
+- **設定** — Pro、テーマ、既定スヌーズ、通知許可。
+
+## 技術構成
+
+- Flutter / Dart
+- `flutter_local_notifications` + `timezone` + `flutter_timezone` … アラート（ローカル通知）
+- `in_app_purchase` … サブスク課金（StoreKit / Google Play）
+- `shared_preferences` … プリセット・日別設定・課金状態の永続化
+- 状態管理は `ChangeNotifier`（`lib/data/app_store.dart`）＋ `ListenableBuilder`
+
+```
+lib/
+  main.dart                 起動・初期化・MaterialApp
+  constants.dart            課金プロダクトID・無料枠・色パレット
+  models/                   Preset / DayPlan / ResolvedAlarm
+  data/app_store.dart       状態＋永続化＋予定の解決ロジック
+  services/                 notification / billing / globals
+  theme/app_theme.dart      配色（ライト/ダーク）
+  ui/                       calendar / presets / settings / paywall / rotation / day_sheet
+```
+
+## 開発・ビルド
+
+前提: Flutter SDK（3.44 で確認）。iOS ビルドは **Mac + Xcode** が必要。
+
+```bash
+flutter pub get
+flutter analyze          # 静的解析（No issues であること）
+flutter test             # ユニットテスト
+flutter run              # 実機/シミュレータで起動
+```
+
+### iOS 固有の設定（Xcode 側）
+
+- **Bundle Identifier** を `app.sakiyomi.alarm` に設定（Runner ターゲット）。
+- **表示名** を「さきよみアラーム」に（Info.plist の `CFBundleDisplayName`）。
+- **Time Sensitive 通知**: Signing & Capabilities に *Time Sensitive Notifications* を追加すると、集中モード中も通知が届きやすくなります。
+- **App Store Connect** でサブスク（`sakiyomi_pro_monthly` / `sakiyomi_pro_yearly`）を作成。テストは Sandbox / StoreKit Configuration で。
+
+### iOS のアラームに関する制約（重要）
+
+iOS はサードパーティに「確実に大音量で鳴り続ける全画面アラーム」を許しません。本アプリの起床通知は **ローカル通知** で実装しています。
+- 通知音は短く、サイレント/集中モードで鳴らない場合があります（Time Sensitive で緩和）。
+- 保留中のローカル通知は **64 件まで**。本アプリは直近の最大 60 件をスケジュールします。
+
+### Android（将来対応）
+
+`android/app/src/main/AndroidManifest.xml` に通知・正確なアラームの権限と受信機を設定済み。`SCHEDULE_EXACT_ALARM` はランタイム許可が必要な場合があります。
+
+## ステータス
+
+- `flutter analyze`: No issues / `flutter test`: 通過。
+- 課金・通知の実挙動は実機（iOS は Mac ビルド）での確認が必要。
+- 効果音の同梱・ウィジェット・オンボーディングは今後の拡張余地。
+
+---
+
+Made with Flutter.
