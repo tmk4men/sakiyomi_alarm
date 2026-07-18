@@ -10,6 +10,37 @@ const int kMaxPresetsFree = 3;
 /// スヌーズ用の枠を残すため 55 に抑える。
 const int kMaxScheduledAlarms = 55;
 
+/// iOSの通知音はループ不可・最大30秒。そこで同じアラームを短間隔で複数回
+/// 通知して「鳴り続ける（擬似ループ）」を実現する。
+/// ただし通知は64個上限なので、擬似ループは直近のアラームだけに付ける。
+const int kAlarmRepeatCount = 5; // 追加の連続通知回数（本体＋これ）
+const int kAlarmRepeatIntervalSec = 30; // 連続通知の間隔（秒）
+const int kLoopAlarmsAhead = 3; // 擬似ループを付ける直近アラーム数
+
+/// 選べるアラーム音（同梱）。id はネイティブ資源名/アセット名に対応。
+class AlarmSound {
+  final String id;
+  final String name;
+  const AlarmSound(this.id, this.name);
+}
+
+class BuiltinSounds {
+  static const String defaultId = 'default';
+  static const List<AlarmSound> all = [
+    AlarmSound('default', '標準'),
+    AlarmSound('classic', 'クラシック'),
+    AlarmSound('ring', 'リング'),
+    AlarmSound('alarm', 'アラーム'),
+  ];
+
+  /// audioplayers 用アセットパス（assets/ 起点）。default は試聴不可。
+  static String? assetFor(String id) =>
+      id == defaultId ? null : 'sounds/$id.mp3';
+
+  static String nameFor(String id) =>
+      all.firstWhere((s) => s.id == id, orElse: () => all.first).name;
+}
+
 /// 法的文書のURL（GitHub Pages）。
 const String kTermsUrl = 'https://tmk4men.github.io/sakiyomi_alarm/terms.html';
 const String kPrivacyUrl = 'https://tmk4men.github.io/sakiyomi_alarm/privacy.html';

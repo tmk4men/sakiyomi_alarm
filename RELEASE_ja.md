@@ -26,10 +26,14 @@ Runner ターゲットを選択して：
 2. **PrivacyInfo.xcprivacy をターゲットに追加**（審査に必須）
    - 左のファイルツリーで `Runner/PrivacyInfo.xcprivacy` を選択 → 右の *File Inspector* の **Target Membership** で **Runner** にチェック。
    - （ツリーに無ければ `ios/Runner/PrivacyInfo.xcprivacy` を Runner フォルダにドラッグ＆ドロップ。「Copy items if needed」不要、Target=Runner）。
-3. **Capability 追加（推奨）**
+3. **アラーム音をターゲットに追加**（iOSでカスタム音を鳴らすのに必須）
+   - `ios/Runner/Sounds/` の `classic.caf` / `ring.caf` / `alarm.caf` を Runner フォルダにドラッグ＆ドロップ。
+   - 「Copy items if needed」は不要、**Target=Runner** にチェック（＝Copy Bundle Resources に入る）。
+   - これが無いと、選んだ音が鳴らず既定音になります。
+4. **Capability 追加（推奨）**
    - *+ Capability* → **Time Sensitive Notifications** を追加。集中モード中でもアラーム通知が届きやすくなります。
    - **Push Notifications は不要**（ローカル通知のみ）。
-4. **表示名・アイコン**は設定済み（Info.plist の `CFBundleDisplayName`＝さきよみアラーム、`AppIcon` 生成済み）。
+5. **表示名・アイコン**は設定済み（Info.plist の `CFBundleDisplayName`＝さきよみアラーム、`AppIcon` 生成済み）。
 
 ## 3. App Store Connect
 

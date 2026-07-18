@@ -137,6 +137,7 @@ class AppStore extends ChangeNotifier {
         colorIndex: useP ? preset.colorIndex : 0,
         snoozeMinutes: preset?.snoozeMinutes ?? defaultSnooze,
         vibrate: preset?.vibrate ?? true,
+        soundId: preset?.soundId ?? BuiltinSounds.defaultId,
         isOverride: true,
       );
     }
@@ -149,6 +150,7 @@ class AppStore extends ChangeNotifier {
         colorIndex: preset.colorIndex,
         snoozeMinutes: preset.snoozeMinutes,
         vibrate: preset.vibrate,
+        soundId: preset.soundId,
         isOverride: false,
       );
     }

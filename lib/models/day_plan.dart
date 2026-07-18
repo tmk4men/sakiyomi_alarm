@@ -55,6 +55,7 @@ class ResolvedAlarm {
   final int colorIndex;
   final int snoozeMinutes;
   final bool vibrate;
+  final String soundId;
   final bool isOverride;
 
   const ResolvedAlarm({
@@ -65,6 +66,7 @@ class ResolvedAlarm {
     required this.colorIndex,
     required this.snoozeMinutes,
     required this.vibrate,
+    required this.soundId,
     required this.isOverride,
   });
 

@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../constants.dart';
@@ -144,6 +145,8 @@ class _PresetEditorState extends State<_PresetEditor> {
   late int _h;
   late int _m;
   late int _color;
+  late String _soundId;
+  final AudioPlayer _player = AudioPlayer();
 
   @override
   void initState() {
@@ -154,12 +157,23 @@ class _PresetEditorState extends State<_PresetEditor> {
     _h = p?.hour ?? 6;
     _m = p?.minute ?? 30;
     _color = p?.colorIndex ?? 3;
+    _soundId = p?.soundId ?? BuiltinSounds.defaultId;
   }
 
   @override
   void dispose() {
     _name.dispose();
+    _player.dispose();
     super.dispose();
+  }
+
+  Future<void> _preview(String id) async {
+    final asset = BuiltinSounds.assetFor(id);
+    if (asset == null) return; // 「標準」は試聴なし
+    try {
+      await _player.stop();
+      await _player.play(AssetSource(asset));
+    } catch (_) {}
   }
 
   @override
@@ -269,6 +283,66 @@ class _PresetEditorState extends State<_PresetEditor> {
                 );
               }),
             ),
+            if (!_off) ...[
+              const SizedBox(height: 14),
+              _label('アラーム音', cs),
+              const SizedBox(height: 8),
+              Column(
+                children: BuiltinSounds.all.map((s) {
+                  final sel = _soundId == s.id;
+                  final canPreview = BuiltinSounds.assetFor(s.id) != null;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() => _soundId = s.id);
+                        _preview(s.id);
+                      },
+                      borderRadius: BorderRadius.circular(13),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? Color.alphaBlend(
+                                  cs.primary.withValues(alpha: 0.1), cs.surface)
+                              : cs.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(13),
+                          border: Border.all(
+                              color: sel ? cs.primary : cs.outlineVariant,
+                              width: 1.5),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              sel
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                              size: 20,
+                              color: sel ? cs.primary : cs.onSurface.withValues(alpha: 0.4),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(s.name,
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                            if (canPreview)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => _preview(s.id),
+                                icon: Icon(Icons.play_circle_outline,
+                                    color: cs.primary),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
@@ -308,7 +382,7 @@ class _PresetEditorState extends State<_PresetEditor> {
       hour: _off ? null : _h,
       minute: _off ? null : _m,
       colorIndex: _color,
-      soundId: existing?.soundId ?? 'default',
+      soundId: _soundId,
       snoozeMinutes: existing?.snoozeMinutes ?? appStore.defaultSnooze,
       vibrate: existing?.vibrate ?? true,
     );
