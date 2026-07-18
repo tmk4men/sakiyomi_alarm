@@ -27,7 +27,7 @@ class _Paywall extends StatefulWidget {
 }
 
 class _PaywallState extends State<_Paywall> {
-  String _plan = Products.yearly;
+  String _plan = Products.lifetime;
 
   String get _subText {
     switch (widget.reason) {
@@ -49,7 +49,7 @@ class _PaywallState extends State<_Paywall> {
       listenable: billingService,
       builder: (context, _) {
         final monthly = billingService.productById(Products.monthly);
-        final yearly = billingService.productById(Products.yearly);
+        final lifetime = billingService.productById(Products.lifetime);
         return SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.fromLTRB(
@@ -86,7 +86,7 @@ class _PaywallState extends State<_Paywall> {
                         cs,
                         selected: _plan == Products.monthly,
                         title: '月額',
-                        price: monthly?.price ?? '¥320',
+                        price: monthly?.price ?? '¥400',
                         sub: '/ 月',
                         onTap: () => setState(() => _plan = Products.monthly),
                       ),
@@ -95,12 +95,12 @@ class _PaywallState extends State<_Paywall> {
                     Expanded(
                       child: _planCard(
                         cs,
-                        selected: _plan == Products.yearly,
-                        title: '年額',
-                        price: yearly?.price ?? '¥2,600',
-                        sub: '/ 年',
-                        badge: '2ヶ月分お得',
-                        onTap: () => setState(() => _plan = Products.yearly),
+                        selected: _plan == Products.lifetime,
+                        title: '買い切り',
+                        price: lifetime?.price ?? '¥900',
+                        sub: '一度だけ',
+                        badge: 'ずっと使える',
+                        onTap: () => setState(() => _plan = Products.lifetime),
                       ),
                     ),
                   ],
@@ -118,9 +118,9 @@ class _PaywallState extends State<_Paywall> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : Text(
-                            _plan == Products.yearly
-                                ? '7日間無料で試す ・ 年額 ${yearly?.price ?? '¥2,600'}'
-                                : '7日間無料で試す ・ 月額 ${monthly?.price ?? '¥320'}',
+                            _plan == Products.lifetime
+                                ? '買い切りで購入 ・ ${lifetime?.price ?? '¥900'}'
+                                : '7日間無料で試す ・ 月額 ${monthly?.price ?? '¥400'}',
                             style: const TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
                   ),
@@ -145,11 +145,10 @@ class _PaywallState extends State<_Paywall> {
                   ],
                 ),
                 Text(
-                  _plan == Products.yearly
-                      ? '年額 ${yearly?.price ?? '¥2,600'}（税込）／年。7日間の無料体験後に自動更新されます。'
-                          '期間終了の24時間前までに解約しない限り自動更新されます。解約はApp Storeの購読管理から。'
-                          '未経過分の払い戻しは行われません。'
-                      : '月額 ${monthly?.price ?? '¥320'}（税込）／月。7日間の無料体験後に自動更新されます。'
+                  _plan == Products.lifetime
+                      ? '一度の購入で永続的に使えます（サブスクではありません）。'
+                          '${lifetime?.price ?? '¥900'}（税込）の買い切りです。'
+                      : '月額 ${monthly?.price ?? '¥400'}（税込）／月。7日間の無料体験後に自動更新されます。'
                           '期間終了の24時間前までに解約しない限り自動更新されます。解約はApp Storeの購読管理から。',
                   textAlign: TextAlign.center,
                   style: TextStyle(

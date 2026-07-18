@@ -56,7 +56,9 @@ flutter run              # 実機/シミュレータで起動
 - **表示名** は Info.plist の `CFBundleDisplayName`＝「さきよみアラーム」設定済み。
 - **プライバシーマニフェスト**: `ios/Runner/PrivacyInfo.xcprivacy` を作成済み。Xcode で Runner ターゲットに追加（ドラッグ＆ドロップ、Target Membership を Runner に）してください。**申請に必須**。
 - **Time Sensitive 通知**: Signing & Capabilities に *Time Sensitive Notifications* を追加すると、集中モード中も通知が届きやすくなります。
-- **App Store Connect** でサブスク（`sakiyomi_pro_monthly` / `sakiyomi_pro_yearly`）を作成。テストは Sandbox / StoreKit Configuration で。
+- **App Store Connect** で以下を作成。テストは Sandbox / StoreKit Configuration で。
+  - `sakiyomi_pro_monthly` … 自動更新サブスク **月額 ¥400**（7日間無料体験）
+  - `sakiyomi_pro_lifetime` … 非消費型（買い切り）**¥900**
 - アプリアイコン・スクリーンショットは別途用意。
 
 ### 法的文書（利用規約・プライバシーポリシー）

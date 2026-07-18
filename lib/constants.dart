@@ -15,10 +15,14 @@ const String kTermsUrl = 'https://tmk4men.github.io/sakiyomi_alarm/terms.html';
 const String kPrivacyUrl = 'https://tmk4men.github.io/sakiyomi_alarm/privacy.html';
 
 /// アプリ内課金のプロダクトID。
+/// - monthly: 自動更新サブスク（月額¥400）
+/// - lifetime: 買い切り（非消費型・¥900）
 class Products {
   static const String monthly = 'sakiyomi_pro_monthly';
-  static const String yearly = 'sakiyomi_pro_yearly';
-  static const List<String> all = [monthly, yearly];
+  static const String lifetime = 'sakiyomi_pro_lifetime';
+  static const List<String> subs = [monthly];
+  static const List<String> inApp = [lifetime];
+  static const List<String> all = [monthly, lifetime];
 }
 
 /// プリセットの色パレット（インデックスで参照）。
