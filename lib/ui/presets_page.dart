@@ -106,9 +106,11 @@ class PresetsPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              atLimit
-                  ? '無料プランはプリセット3個まで。Proで無制限に。'
-                  : '無料プランはあと${kMaxPresetsFree - presets.length}個まで登録できます。',
+              appStore.isPro
+                  ? 'プリセットは無制限に登録できます。'
+                  : (atLimit
+                      ? '無料プランはプリセット3個まで。Proで無制限に。'
+                      : '無料プランはあと${kMaxPresetsFree - presets.length}個まで登録できます。'),
               style: TextStyle(
                   fontSize: 11.5, color: cs.onSurface.withValues(alpha: 0.5)),
             ),
