@@ -1,0 +1,38 @@
+{
+  "_comment": "さきよみアラームの設定。appId は App Store Connect で App を作成後に置き換える（または数字引数で上書き）。実行: node scripts/asc/setup-iap.mjs scripts/asc/asc.config.sakiyomi.json --yes / setup-metadata.mjs 同様。秘密情報は入れない。",
+  "appId": "0000000000",
+  "locale": "ja",
+  "category": "UTILITIES",
+  "urls": {
+    "baseUrl": "https://tmk4men.github.io/sakiyomi_alarm",
+    "contactEmail": "tomokiskriiiabc@gmail.com"
+  },
+  "plan": {
+    "territory": "JPN",
+    "locale": "ja",
+    "subscription": {
+      "groupRef": "Sakiyomi Pro",
+      "productId": "sakiyomi_pro_monthly",
+      "name": "月額プラン",
+      "period": "ONE_MONTH",
+      "targetYen": 400,
+      "locName": "さきよみ Pro 月額",
+      "locDesc": "7日より先までまとめて設定・プリセット無制限・くり返し自動生成が使えます。"
+    },
+    "lifetime": {
+      "productId": "sakiyomi_pro_lifetime",
+      "name": "買い切りプラン",
+      "targetYen": 900,
+      "locName": "さきよみ Pro 買い切り",
+      "locDesc": "一度の購入で、対象の全機能を追加課金なしでご利用いただけます。"
+    }
+  },
+  "copy": {
+    "subtitle": "1ヶ月分の目覚まし、まとめて設定",
+    "promotionalText": "先の予定まで、今夜まとめて。毎晩の「何時にしよう」から解放。シフトも旅行も、カレンダーで塗るだけ。",
+    "keywords": "アラーム,目覚まし,シフト,夜勤,早番,カレンダー,予定,起床,不定休,寝坊防止,スヌーズ,朝",
+    "whatsNew": "最初のリリースです。1ヶ月分の起床時刻をカレンダーでまとめて設定できます。",
+    "reviewNotes": "Sakiyomi Alarm lets users set a whole month of wake-up times at once on a calendar. Alarms are delivered as local notifications (no server, no account).\n\nHOW TO TEST\n- The app opens directly to the calendar. No login or account is required.\n- Tap a preset (e.g. 早番 05:30) at the bottom, then tap/drag over calendar days to assign wake times. Tap a day to edit or set it as a day off.\n\nIN-APP PURCHASES\n- Free tier: set alarms up to 7 days ahead, up to 3 presets.\n- Tapping the unlock banner (\"Proで解放\") or the paywall starts a monthly subscription (sakiyomi_pro_monthly) or a one-time purchase (sakiyomi_pro_lifetime). Please test with a Sandbox account. Restore is supported. There is NO free trial.\n\nNOTES\n- iOS delivers wake-ups via local notifications; reliability depends on Focus/Do Not Disturb and notification permission.\n- All data is stored on-device only. No tracking.",
+    "description": "毎晩「明日は何時に起きよう」と悩んでいませんか？\n\nさきよみアラームは、1ヶ月分の起床時刻をカレンダーでまとめて設定できる目覚ましアプリです。シフト勤務や不定休の方はもちろん、旅行・帰省などで数日だけ早起きしたいときにも。\n\n■ カレンダーで一目\n月を見渡して、各日をタップするだけ。今日の分も、来週の分も、まとめて決められます。\n\n■ プリセットで“塗る”\n「通常 7:00」「早番 5:30」「休み」など、よく使うパターンを登録。カレンダーでなぞって適用。毎回時刻を入力する手間がありません。\n\n■ この日だけの調整も簡単\n特定の日だけ時刻を変えたり、休みにしたり、タップひとつ。\n\n■ くり返しで自動入力（Pro）\n「早番3日・休み1日」のような周期を、期間まとめて流し込み。\n\n■ シンプルだから続く\n余計な機能はなし。開いて、塗って、終わり。\n\n【料金】\n・無料：今日から7日先まで設定・プリセット3個まで\n・Pro：7日より先もまとめて設定・プリセット無制限・くり返し自動生成\n　月額プラン、または一度きりの買い切りから選べます。\n\n※iOSの仕様上、通知でお知らせします。確実に起きるため、通知の許可と集中モードでの許可設定をおすすめします。\n\n利用規約：${TERMS_URL}\nプライバシーポリシー：${PRIVACY_URL}"
+  }
+}

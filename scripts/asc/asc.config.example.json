@@ -1,0 +1,39 @@
+{
+  "_comment": "新しいアプリ用の雛形。これをコピーして値を埋め、setup-iap / setup-metadata に渡す。秘密情報は入れない（コミットOK）。",
+  "appId": "0000000000",
+  "locale": "ja",
+  "category": "HEALTH_AND_FITNESS",
+  "urls": {
+    "baseUrl": "https://<your-github-user>.github.io/<your-app-repo>",
+    "contactEmail": "you@example.com"
+  },
+  "plan": {
+    "territory": "JPN",
+    "locale": "ja",
+    "subscription": {
+      "groupRef": "MyApp Pro",
+      "productId": "com.you.myapp.monthly",
+      "name": "月額プラン",
+      "period": "ONE_MONTH",
+      "targetYen": 800,
+      "trialDuration": "ONE_WEEK",
+      "locName": "MyApp 月額プラン",
+      "locDesc": "全機能を無制限に利用できます。"
+    },
+    "lifetime": {
+      "productId": "com.you.myapp.lifetime",
+      "name": "買い切りプラン",
+      "targetYen": 2500,
+      "locName": "MyApp 買い切り",
+      "locDesc": "追加の課金なしで、対象の全機能をご利用いただけます。"
+    }
+  },
+  "copy": {
+    "subtitle": "30字以内のサブタイトル",
+    "promotionalText": "170字以内の宣伝文。",
+    "keywords": "キーワード,カンマ区切り,100字以内",
+    "whatsNew": "初回リリースです。（whatsNew は初回1.0では設定不可なので自動でスキップされます）",
+    "reviewNotes": "App Review 向けメモ（英語推奨）。ログイン要否・IAPのテスト手順・プライバシー方針など。",
+    "description": "アプリ説明本文。\n\n末尾に規約/プライバシーを入れたい場合はプレースホルダが使えます：\n利用規約：${TERMS_URL}\nプライバシーポリシー：${PRIVACY_URL}"
+  }
+}

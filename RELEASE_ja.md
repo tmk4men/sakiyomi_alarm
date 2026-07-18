@@ -31,19 +31,38 @@ Runner ターゲットを選択して：
    - **Push Notifications は不要**（ローカル通知のみ）。
 4. **表示名・アイコン**は設定済み（Info.plist の `CFBundleDisplayName`＝さきよみアラーム、`AppIcon` 生成済み）。
 
-## 3. App Store Connect（ブラウザ）
+## 3. App Store Connect
 
-1. **App を新規登録**：Bundle ID `app.sakiyomi.alarm`、名前「さきよみアラーム」。
-2. **App内課金 / サブスク**を作成：
-   - サブスク `sakiyomi_pro_monthly` … **月額 ¥400**（無料体験オファーは付けない）。
-   - 非消費型 `sakiyomi_pro_lifetime` … **¥900**（買い切り）。
-3. **App プライバシー**：トラッキングなし・データ収集なし（本アプリは端末内保存のみ）。
-4. **URL 登録**：
-   - 利用規約: `https://tmk4men.github.io/sakiyomi_alarm/terms.html`
-   - プライバシー: `https://tmk4men.github.io/sakiyomi_alarm/privacy.html`
-5. スクリーンショット等の掲載素材を用意。
+まず **App を新規登録**（ブラウザ）：Bundle ID `app.sakiyomi.alarm`、名前「さきよみアラーム」。バージョン(1.0)も作成。
+（Appの新規登録だけは API 不可なので手動。ここまでできたら以降はコマンドで自動入力できます）
 
-> テストは **StoreKit Configuration** または **Sandbox** で。価格はストアから取得して表示されます（アプリ内の¥400/¥900はフォールバック表示）。
+### 課金・掲載文を API で自動入力（posturaと同じ鍵）
+
+`scripts/asc/` に App Store Connect API ツール一式が入っています（postura と同じもの）。
+認証は共通の `~/.asc/config.json`（posturaのプロファイル）を流用。
+
+```bash
+# appId を確認（作成したアプリのID）
+node scripts/asc/asc.mjs apps
+
+# asc.config.sakiyomi.json の "appId" を上のIDに書き換える（または末尾に数字引数で上書き）
+
+# 課金商品（月額¥400 / 買い切り¥900・トライアルなし）。まずドライラン→ --yes
+node scripts/asc/setup-iap.mjs      scripts/asc/asc.config.sakiyomi.json
+node scripts/asc/setup-iap.mjs      scripts/asc/asc.config.sakiyomi.json --yes
+
+# 掲載文（説明・キーワード・サブタイトル・カテゴリ・審査メモ・URL）
+node scripts/asc/setup-metadata.mjs scripts/asc/asc.config.sakiyomi.json
+node scripts/asc/setup-metadata.mjs scripts/asc/asc.config.sakiyomi.json --yes
+```
+
+掲載文の内容は `scripts/asc/asc.config.sakiyomi.json` の `copy` を編集すれば変えられます。
+`${TERMS_URL}`/`${PRIVACY_URL}` は自動展開されます（利用規約・プライバシーのURL）。
+
+### 手動で残る（API不可）
+
+- スクリーンショット、年齢レーティング、App プライバシー（データ収集の申告）、審査提出。
+- テストは StoreKit Configuration / Sandbox。価格はストアから取得表示（アプリ内¥400/¥900はフォールバック）。
 
 ## 4. ビルドしてアップロード（Terminal）
 
