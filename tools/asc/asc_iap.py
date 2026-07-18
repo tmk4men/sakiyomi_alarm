@@ -17,8 +17,12 @@ App Store Connect API で さきよみアラームの課金商品を作成する
   BUNDLE_ID       … 省略時 app.sakiyomi.alarm
 
 使い方（Mac）:
-  python3 asc_iap.py verify    # 認証確認・アプリ検索・既存商品の一覧（作成しない）
-  python3 asc_iap.py create    # 商品を作成
+  python3 asc_iap.py verify    # 認証確認・アプリ検索・既存商品の一覧（変更しない）
+  python3 asc_iap.py metadata  # ストア文章(名前/説明/キーワード/URL)を自動入力
+  python3 asc_iap.py iap       # 課金商品(月額¥400/買い切り¥900)を作成
+  python3 asc_iap.py all       # metadata + iap をまとめて実行
+
+ストア文章の内容は metadata.json を編集して調整できます。
 """
 
 import os
@@ -235,14 +239,102 @@ def create():
     group_id = ensure_subscription_group(app_id)
     create_monthly(group_id)
     create_lifetime(app_id)
-    print("\n完了。App Store Connect で審査提出前にメタデータ/スクショを確認してください。")
+    print("\n課金商品の作成が完了しました。")
+
+
+# ---- ストア文章(メタデータ)の自動入力 ----
+
+def load_metadata():
+    p = os.path.join(os.path.dirname(__file__), "metadata.json")
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def push_app_info(app_id, meta):
+    """アプリ名・サブタイトル・プライバシーURL（appInfoLocalizations）。"""
+    infos = api("GET", f"/v1/apps/{app_id}/appInfos")
+    if not infos.get("data"):
+        raise SystemExit("appInfo が取得できません")
+    info_id = infos["data"][0]["id"]
+    locale = meta["locale"]
+    a = meta["appInfo"]
+    attrs = {
+        "name": a["name"],
+        "subtitle": a.get("subtitle"),
+        "privacyPolicyUrl": a.get("privacyPolicyUrl"),
+    }
+    locs = api("GET", f"/v1/appInfos/{info_id}/appInfoLocalizations")
+    target = next((l for l in locs.get("data", []) if l["attributes"].get("locale") == locale), None)
+    if target:
+        api("PATCH", f"/v1/appInfoLocalizations/{target['id']}",
+            {"data": {"type": "appInfoLocalizations", "id": target["id"], "attributes": attrs}})
+        print("アプリ名/サブタイトル/プライバシーURL 更新(ja)")
+    else:
+        api("POST", "/v1/appInfoLocalizations",
+            {"data": {"type": "appInfoLocalizations",
+                      "attributes": {**attrs, "locale": locale},
+                      "relationships": {"appInfo": {"data": {"type": "appInfos", "id": info_id}}}}})
+        print("アプリ名/サブタイトル/プライバシーURL 作成(ja)")
+
+
+def push_version(app_id, meta):
+    """説明・キーワード・宣伝文・URL類（appStoreVersionLocalizations）。"""
+    vers = api("GET", f"/v1/apps/{app_id}/appStoreVersions?filter[platform]=IOS&limit=10")
+    if not vers.get("data"):
+        raise SystemExit("編集可能なバージョンがありません。App Store Connectで新規バージョンを作成してください。")
+    ver_id = vers["data"][0]["id"]
+    locale = meta["locale"]
+    v = meta["version"]
+    attrs = {
+        "description": v["description"],
+        "keywords": v.get("keywords"),
+        "promotionalText": v.get("promotionalText"),
+        "supportUrl": v.get("supportUrl"),
+        "marketingUrl": v.get("marketingUrl"),
+        "whatsNew": v.get("whatsNew"),
+    }
+    locs = api("GET", f"/v1/appStoreVersions/{ver_id}/appStoreVersionLocalizations")
+    target = next((l for l in locs.get("data", []) if l["attributes"].get("locale") == locale), None)
+    if target:
+        api("PATCH", f"/v1/appStoreVersionLocalizations/{target['id']}",
+            {"data": {"type": "appStoreVersionLocalizations", "id": target["id"], "attributes": attrs}})
+        print("説明/キーワード/URL 更新(ja)")
+    else:
+        api("POST", "/v1/appStoreVersionLocalizations",
+            {"data": {"type": "appStoreVersionLocalizations",
+                      "attributes": {**attrs, "locale": locale},
+                      "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": ver_id}}}}})
+        print("説明/キーワード/URL 作成(ja)")
+
+
+def metadata():
+    app_id = find_app_id()
+    meta = load_metadata()
+    push_app_info(app_id, meta)
+    push_version(app_id, meta)
+    print("\nストア文章の入力が完了しました。スクショと審査提出は手動です。")
+
+
+def do_all():
+    app_id = find_app_id()
+    meta = load_metadata()
+    push_app_info(app_id, meta)
+    push_version(app_id, meta)
+    group_id = ensure_subscription_group(app_id)
+    create_monthly(group_id)
+    create_lifetime(app_id)
+    print("\nメタデータ＋課金商品の自動入力が完了しました。")
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "verify"
     if cmd == "verify":
         verify()
-    elif cmd == "create":
+    elif cmd in ("create", "iap"):
         create()
+    elif cmd == "metadata":
+        metadata()
+    elif cmd == "all":
+        do_all()
     else:
         print(__doc__)

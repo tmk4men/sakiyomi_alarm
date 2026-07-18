@@ -22,12 +22,31 @@ export ASC_KEY_ID=XXXXXXXXXX
 export ASC_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 export ASC_KEY_PATH=~/keys/AuthKey_XXXXXXXXXX.p8
 
-# まず認証・アプリ確認（作成しない）
+# まず認証・アプリ確認（変更しない）
 python3 tools/asc/asc_iap.py verify
 
-# 問題なければ作成
-python3 tools/asc/asc_iap.py create
+# ストア文章＋課金商品をまとめて自動入力
+python3 tools/asc/asc_iap.py all
 ```
+
+### コマンド
+
+| コマンド | 内容 |
+|---|---|
+| `verify` | 認証・アプリ検出・既存商品の一覧（変更なし） |
+| `metadata` | アプリ名・サブタイトル・説明・キーワード・URL・プライバシーURL を自動入力 |
+| `iap` | 月額¥400 サブスク・買い切り¥900 を作成 |
+| `all` | metadata + iap をまとめて実行 |
+
+ストア文章は `metadata.json` を編集して調整できます。
+
+## API では自動化できない（手動が残る）
+
+- **App 本体の新規登録**（最初の1回だけ Web で作成。Bundle ID `app.sakiyomi.alarm`）
+- **バージョンの作成**（`metadata` はこの後に実行。無いとエラーで教えてくれます）
+- **スクリーンショット**（画像の用意が必要）
+- **年齢レーティング / App プライバシー(データ収集の申告)**
+- **ビルドの紐付けと審査提出**（ビルドは `flutter build ipa` → アップロード）
 
 ## 注意
 
