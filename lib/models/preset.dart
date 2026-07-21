@@ -1,6 +1,13 @@
 /// よく使う起床パターン。ユーザーが自由に登録・編集する。
 /// [hour]/[minute] が null の場合は「休み（アラームなし）」。
 class Preset {
+  /// 固定「休み」プリセットのID。常に1つ存在し、編集・削除できない。
+  static const String offId = 'p_off';
+
+  /// 固定の「休み（アラームなし）」プリセット。時刻なし・グレー。
+  static const Preset off =
+      Preset(id: offId, name: '休み', colorIndex: 4);
+
   final String id;
   final String name;
   final int? hour;
@@ -22,6 +29,9 @@ class Preset {
   });
 
   bool get isDayOff => hour == null || minute == null;
+
+  /// 固定の「休み」プリセットか（編集・削除不可の対象）。
+  bool get isFixedOff => id == offId;
 
   String get timeLabel {
     if (isDayOff) return '休み';

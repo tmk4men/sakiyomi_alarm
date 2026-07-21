@@ -17,7 +17,9 @@ class PresetsPage extends StatelessWidget {
       listenable: appStore,
       builder: (context, _) {
         final presets = appStore.presets;
-        final atLimit = !appStore.isPro && presets.length >= kMaxPresetsFree;
+        // 固定「休み」は上限にカウントしない。
+        final userCount = presets.where((p) => !p.isFixedOff).length;
+        final atLimit = !appStore.isPro && userCount >= kMaxPresetsFree;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
@@ -42,7 +44,7 @@ class PresetsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: () => _openEditor(context, p),
+                    onTap: p.isFixedOff ? null : () => _openEditor(context, p),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: Row(
@@ -64,7 +66,7 @@ class PresetsPage extends StatelessWidget {
                                         fontWeight: FontWeight.w700)),
                                 Text(
                                     p.isDayOff
-                                        ? 'アラームなし（休み）'
+                                        ? '塗った日は鳴らない（固定・編集不可）'
                                         : '毎回この時刻で起こす',
                                     style: TextStyle(
                                         fontSize: 12,
@@ -110,7 +112,7 @@ class PresetsPage extends StatelessWidget {
                   ? 'プリセットは無制限に登録できます。'
                   : (atLimit
                       ? '無料プランはプリセット3個まで。Proで無制限に。'
-                      : '無料プランはあと${kMaxPresetsFree - presets.length}個まで登録できます。'),
+                      : '無料プランはあと${kMaxPresetsFree - userCount}個まで登録できます。'),
               style: TextStyle(
                   fontSize: 11.5, color: cs.onSurface.withValues(alpha: 0.5)),
             ),
@@ -124,6 +126,7 @@ class PresetsPage extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
@@ -143,7 +146,6 @@ class _PresetEditor extends StatefulWidget {
 
 class _PresetEditorState extends State<_PresetEditor> {
   late TextEditingController _name;
-  late bool _off;
   late int _h;
   late int _m;
   late int _color;
@@ -155,7 +157,6 @@ class _PresetEditorState extends State<_PresetEditor> {
     super.initState();
     final p = widget.preset;
     _name = TextEditingController(text: p?.name ?? '');
-    _off = p?.isDayOff ?? false;
     _h = p?.hour ?? 6;
     _m = p?.minute ?? 30;
     _color = p?.colorIndex ?? 3;
@@ -184,7 +185,11 @@ class _PresetEditorState extends State<_PresetEditor> {
     final brightness = Theme.of(context).brightness;
     final isNew = widget.preset == null;
 
-    return SingleChildScrollView(
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
+      child: SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
             20, 8, 20, MediaQuery.of(context).viewInsets.bottom + 22),
@@ -222,43 +227,10 @@ class _PresetEditorState extends State<_PresetEditor> {
               ),
             ),
             const SizedBox(height: 14),
-            InkWell(
-              onTap: () => setState(() => _off = !_off),
-              borderRadius: BorderRadius.circular(13),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(13)),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('休みの日（アラームなし）',
-                              style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600)),
-                          Text('この色を塗った日は鳴りません',
-                              style: TextStyle(fontSize: 11, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                        value: _off,
-                        onChanged: (v) => setState(() => _off = v)),
-                  ],
-                ),
-              ),
-            ),
+            _label('起こす時刻', cs),
+            const SizedBox(height: 7),
+            _timePicker(cs),
             const SizedBox(height: 14),
-            if (!_off) ...[
-              _label('起こす時刻', cs),
-              const SizedBox(height: 7),
-              _timePicker(cs),
-              const SizedBox(height: 14),
-            ],
             _label('色', cs),
             const SizedBox(height: 8),
             Row(
@@ -285,12 +257,11 @@ class _PresetEditorState extends State<_PresetEditor> {
                 );
               }),
             ),
-            if (!_off) ...[
-              const SizedBox(height: 14),
-              _label('アラーム音', cs),
-              const SizedBox(height: 8),
-              Column(
-                children: BuiltinSounds.all.map((s) {
+            const SizedBox(height: 14),
+            _label('アラーム音', cs),
+            const SizedBox(height: 8),
+            Column(
+              children: BuiltinSounds.all.map((s) {
                   final sel = _soundId == s.id;
                   final canPreview = BuiltinSounds.assetFor(s.id) != null;
                   return Padding(
@@ -343,8 +314,7 @@ class _PresetEditorState extends State<_PresetEditor> {
                     ),
                   );
                 }).toList(),
-              ),
-            ],
+            ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
@@ -372,6 +342,7 @@ class _PresetEditorState extends State<_PresetEditor> {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -381,8 +352,8 @@ class _PresetEditorState extends State<_PresetEditor> {
     final preset = Preset(
       id: existing?.id ?? 'p_${DateTime.now().microsecondsSinceEpoch}',
       name: name,
-      hour: _off ? null : _h,
-      minute: _off ? null : _m,
+      hour: _h,
+      minute: _m,
       colorIndex: _color,
       soundId: _soundId,
       snoozeMinutes: existing?.snoozeMinutes ?? appStore.defaultSnooze,

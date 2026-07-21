@@ -71,6 +71,15 @@ class AppStore extends ChangeNotifier {
       presets = _defaultPresets();
       await _savePresets();
     }
+    // 「休み」は固定プリセット。常に1つ存在し、内容も固定に正規化する。
+    final offIdx = presets.indexWhere((p) => p.id == Preset.offId);
+    if (offIdx < 0) {
+      presets.add(Preset.off);
+      await _savePresets();
+    } else if (!presets[offIdx].isDayOff || presets[offIdx].name != Preset.off.name) {
+      presets[offIdx] = Preset.off;
+      await _savePresets();
+    }
 
     try {
       final plansRaw = _prefs.getString(_kDayPlans);
@@ -81,6 +90,23 @@ class AppStore extends ChangeNotifier {
       }
     } catch (_) {
       dayPlans = {};
+    }
+
+    // 旧仕様で「休み扱い」にされた他プリセットは固定「休み」に統合する。
+    final strayOff = presets
+        .where((p) => p.isDayOff && p.id != Preset.offId)
+        .map((p) => p.id)
+        .toSet();
+    if (strayOff.isNotEmpty) {
+      for (final key in dayPlans.keys.toList()) {
+        final plan = dayPlans[key]!;
+        if (!plan.hasOverride && strayOff.contains(plan.presetId)) {
+          dayPlans[key] = DayPlan(date: key, presetId: Preset.offId);
+        }
+      }
+      presets.removeWhere((p) => strayOff.contains(p.id));
+      await _savePresets();
+      await _saveDayPlans();
     }
 
     try {
@@ -117,7 +143,7 @@ class AppStore extends ChangeNotifier {
   List<Preset> _defaultPresets() => [
         const Preset(id: 'p_normal', name: '通常', hour: 7, minute: 0, colorIndex: 0),
         const Preset(id: 'p_early', name: '早番', hour: 5, minute: 30, colorIndex: 1),
-        const Preset(id: 'p_off', name: '休み', hour: null, minute: null, colorIndex: 4),
+        Preset.off, // 固定の「休み」
       ];
 
   // ---- resolve ----
@@ -266,6 +292,7 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> deletePreset(String id) async {
+    if (id == Preset.offId) return; // 固定「休み」は削除不可
     presets.removeWhere((p) => p.id == id);
     // そのプリセットを使っていた日の割り当ては解除する。
     dayPlans.removeWhere((_, plan) => plan.presetId == id && !plan.hasOverride);
